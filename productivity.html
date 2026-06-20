@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Productivity Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #10160F;
+    --bg-grad: #0B100B;
+    --panel: #161F19;
+    --panel-light: #1D2922;
+    --paper: #F3EEE0;
+    --ink: #1B1B16;
+    --text: #E7E3D6;
+    --muted: #8B9488;
+    --amber: #E8A33D;
+    --amber-soft: rgba(232,163,61,0.20);
+    --mint: #6FCF97;
+    --red: #D9534F;
+    --border: rgba(231,227,214,0.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(ellipse at 50% -10%, #1A241C 0%, var(--bg-grad) 60%);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height:100vh;
+    padding: 28px 16px 60px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3, .display{
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .wrap{
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .masthead{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 14px;
+  }
+  .masthead h1{
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin:0;
+    text-transform: uppercase;
+  }
+  .masthead .tag{
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+  /* date nav */
+  .datebar{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .datebar button{
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .datebar button:hover{ background: var(--amber-soft); border-color: var(--amber); }
+  .datebar button:disabled{ opacity: 0.3; cursor: not-allowed; }
+  .datebar .label{
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+    min-width: 150px;
+    text-align: center;
+  }
+  .datebar .label .today-pill{
+    color: var(--amber);
+  }
+  /* odometer */
+  .odo-frame{
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 22px 10px 16px;
+    text-align:center;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06), 0 8px 18px rgba(0,0,0,0.25);
+    position: relative;
+    overflow:hidden;
+  }
+  .odo-frame:before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:6px;
+    background: repeating-linear-gradient(90deg, transparent 0 6px, rgba(0,0,0,0.08) 6px 8px);
+  }
+  .odo-digits{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 56px;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.15s ease;
+  }
+  .odo-digits .colon{ color: #B7AE92; padding: 0 2px; }
+  .odo-sub{
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6E6A57;
+    margin-top: 4px;
+  }
+  .flash .odo-digits{ color: var(--amber); }
+
+  /* controls */
+  .controls{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content:center;
+    margin-top: 16px;
+  }
+  .controls button{
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    cursor:pointer;
+    transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .controls button:hover{ border-color: var(--amber); background: var(--amber-soft); }
+  .controls button:active{ transform: scale(0.96); }
+  .controls button.minus:hover{ border-color: var(--red); background: rgba(217,83,79,0.15); }
+
+  .custom-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .custom-row label{
+    font-size: 11px; color: var(--muted); letter-spacing: 0.05em;
+  }
+  .custom-row input[type=number]{
+    width: 56px;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 7px 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    text-align:center;
+  }
+  .custom-row input[type=number]:focus, .datebar input:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
+  .custom-row .apply-btn{
+    background: var(--amber);
+    color: #2A1B05;
+    border: none;
+    font-weight: 600;
+  }
+  .custom-row .apply-btn:hover{ background: #F0B255; }
+  .custom-row .set-btn{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .custom-row .set-btn:hover{ border-color: var(--text); color: var(--text); }
+
+  .clear-link{
+    display:block;
+    text-align:center;
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    cursor:pointer;
+    text-decoration: underline;
+    text-decoration-color: var(--border);
+  }
+  .clear-link:hover{ color: var(--red); }
+
+  /* section header */
+  .section-head{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom: 12px;
+  }
+  .section-head h2{
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin:0;
+    font-weight: 600;
+  }
+  .range-toggle{ display:flex; gap:4px; }
+  .range-toggle button{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 4px 9px;
+    border-radius: 6px;
+    cursor:pointer;
+  }
+  .range-toggle button.active{
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  /* chart */
+  .chart-wrap svg{ width:100%; display:block; overflow: visible; }
+  .bar{ cursor:pointer; }
+  .bar:hover rect.fill{ filter: brightness(1.25); }
+  .axis-label{ fill: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 9px; }
+  .goal-line{ stroke: var(--mint); stroke-dasharray: 4 4; stroke-width: 1; opacity: 0.6; }
+
+  .goal-row{
+    display:flex; align-items:center; gap:8px; justify-content:center;
+    margin-top: 14px; font-size: 11px; color: var(--muted);
+  }
+  .goal-row input{
+    width: 50px;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 5px 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    text-align:center;
+  }
+  .goal-row button{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 11px;
+    cursor:pointer;
+  }
+  .goal-row button:hover{ border-color: var(--amber); color: var(--amber); }
+
+  /* stats */
+  .stats{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .stat{
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 10px;
+    text-align:center;
+  }
+  .stat .num{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--amber);
+  }
+  .stat .lbl{
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* log list */
+  .log-empty{
+    text-align:center; color: var(--muted); font-size: 12px; padding: 18px 0;
+  }
+  .log-row{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 9px 4px;
+    border-bottom: 1px solid var(--border);
+    cursor:pointer;
+  }
+  .log-row:last-child{ border-bottom:none; }
+  .log-row:hover{ background: rgba(255,255,255,0.02); }
+  .log-row.selected{ background: var(--amber-soft); border-radius: 8px; }
+  .log-date{ width: 92px; font-size: 12px; color: var(--text); flex-shrink:0; }
+  .log-date .wd{ color: var(--muted); font-size: 10px; display:block; }
+  .log-bar-track{ flex:1; height: 8px; background: var(--panel-light); border-radius: 4px; overflow:hidden; }
+  .log-bar-fill{ height:100%; background: var(--amber); border-radius: 4px; }
+  .log-bar-fill.met{ background: var(--mint); }
+  .log-time{ font-size: 12px; width: 64px; text-align:right; flex-shrink:0; }
+  .log-del{
+    background: transparent; border: none; color: var(--muted);
+    cursor:pointer; font-size: 14px; width: 22px; flex-shrink:0;
+  }
+  .log-del:hover{ color: var(--red); }
+  .log-del.confirm{ color: var(--red); font-size: 10px; width:auto; letter-spacing: 0.03em; }
+
+  .toast{
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: var(--panel-light); border: 1px solid var(--border);
+    color: var(--text); padding: 9px 16px; border-radius: 8px;
+    font-size: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+    opacity:0; transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .toast.show{ opacity: 1; }
+
+  .loading{
+    text-align:center; color: var(--muted); font-size: 12px; padding: 40px 0;
+  }
+
+  @media (max-width: 420px){
+    .odo-digits{ font-size: 44px; }
+    .stats{ grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .stat .num{ font-size: 16px; }
+    .log-date{ width: 70px; font-size: 11px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <h1>Productivity Ledger</h1>
+    <div class="tag" id="todayTag">—</div>
+  </div>
+
+  <div id="app">
+    <div class="loading">Opening the ledger…</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function(){
+
+  // ---------- date helpers (local time, no UTC drift) ----------
+  function pad(n){ return n < 10 ? '0'+n : ''+n; }
+  function fmtKey(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function keyToDate(k){ var p = k.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+  function addDays(d, n){ var r = new Date(d); r.setDate(r.getDate()+n); return r; }
+  function startOfDay(d){ var r = new Date(d); r.setHours(0,0,0,0); return r; }
+  function todayKey(){ return fmtKey(new Date()); }
+  var WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function fmtHM(mins){
+    mins = Math.max(0, Math.round(mins));
+    var h = Math.floor(mins/60), m = mins%60;
+    if(h===0) return m+'m';
+    if(m===0) return h+'h';
+    return h+'h '+m+'m';
+  }
+  function fmtLabel(key){
+    var d = keyToDate(key);
+    var t = startOfDay(new Date());
+    if(fmtKey(d) === fmtKey(t)) return 'TODAY';
+    var y = addDays(t,-1);
+    if(fmtKey(d) === fmtKey(y)) return 'YESTERDAY';
+    return (WD[d.getDay()]).toUpperCase()+', '+MO[d.getMonth()]+' '+d.getDate();
+  }
+
+  // ---------- state ----------
+  var state = {
+    data: {},                 // { 'YYYY-MM-DD': minutes }
+    goalMinutes: 120,
+    selectedKey: todayKey(),
+    range: 14,
+    confirmDelete: null,
+    loaded: false,
+    error: null
+  };
+
+  document.getElementById('todayTag').textContent =
+    WD[new Date().getDay()]+' '+MO[new Date().getMonth()]+' '+new Date().getDate()+', '+new Date().getFullYear();
+
+  // ---------- storage ----------
+  function loadAll(){
+    var p1 = window.storage.get('productivity-log', false).catch(function(){ return null; });
+    var p2 = window.storage.get('productivity-settings', false).catch(function(){ return null; });
+    return Promise.all([p1, p2]).then(function(res){
+      try{ state.data = res[0] ? JSON.parse(res[0].value) : {}; } catch(e){ state.data = {}; }
+      try{
+        var s = res[1] ? JSON.parse(res[1].value) : {};
+        if(s && typeof s.goalMinutes === 'number') state.goalMinutes = s.goalMinutes;
+      } catch(e){}
+      state.loaded = true;
+    });
+  }
+  function saveData(){
+    return window.storage.set('productivity-log', JSON.stringify(state.data), false)
+      .catch(function(){ showToast('Could not save — check connection and try again.'); });
+  }
+  function saveSettings(){
+    return window.storage.set('productivity-settings', JSON.stringify({goalMinutes: state.goalMinutes}), false)
+      .catch(function(){ showToast('Could not save the goal — try again.'); });
+  }
+
+  // ---------- mutations ----------
+  function clamp(n){ return Math.max(0, Math.min(1440, Math.round(n))); }
+  function addMinutes(key, delta){
+    var cur = state.data[key] || 0;
+    var next = clamp(cur + delta);
+    if(next <= 0) delete state.data[key]; else state.data[key] = next;
+    render();
+    saveData();
+    flashOdo();
+  }
+  function setMinutes(key, mins){
+    var v = clamp(mins);
+    if(v <= 0) delete state.data[key]; else state.data[key] = v;
+    render();
+    saveData();
+    flashOdo();
+  }
+  function deleteDay(key){
+    delete state.data[key];
+    state.confirmDelete = null;
+    render();
+    saveData();
+  }
+
+  var flashTimer = null;
+  function flashOdo(){
+    var f = document.querySelector('.odo-frame');
+    if(!f) return;
+    f.classList.add('flash');
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(function(){ f.classList.remove('flash'); }, 350);
+  }
+
+  var toastTimer = null;
+  function showToast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+  }
+
+  // ---------- derived stats ----------
+  function weeklyTotal(){
+    var total = 0, t = startOfDay(new Date());
+    for(var i=0;i<7;i++){ total += state.data[fmtKey(addDays(t,-i))] || 0; }
+    return total;
+  }
+  function streak(){
+    var n = 0, t = startOfDay(new Date());
+    var i = 0;
+    // if today has nothing yet, don't break the streak from prior days — start counting from yesterday in that case
+    if(!(state.data[fmtKey(t)] > 0)) i = 1;
+    while(true){
+      var k = fmtKey(addDays(t, -i));
+      if(state.data[k] > 0){ n++; i++; } else break;
+    }
+    return n;
+  }
+
+  // ---------- render ----------
+  var app = document.getElementById('app');
+
+  function render(){
+    if(!state.loaded){
+      app.innerHTML = '<div class="loading">'+(state.error || 'Opening the ledger…')+'</div>';
+      return;
+    }
+
+    var selKey = state.selectedKey;
+    var selMinutes = state.data[selKey] || 0;
+    var isToday = selKey === todayKey();
+    var h = Math.floor(selMinutes/60), m = selMinutes%60;
+    var canGoNext = !isToday;
+
+    var week = weeklyTotal();
+    var streakN = streak();
+
+    app.innerHTML =
+      '<div class="card">' +
+        '<div class="datebar">' +
+          '<button id="navPrev" aria-label="Previous day">‹</button>' +
+          '<div class="label">'+ fmtLabel(selKey) + (isToday ? ' <span class="today-pill">●</span>' : '') +'</div>' +
+          '<button id="navNext" aria-label="Next day" '+(canGoNext?'':'disabled')+'>›</button>' +
+        '</div>' +
+        '<div class="odo-frame">' +
+          '<div class="odo-digits">'+ pad(h) +'<span class="colon">:</span>'+ pad(m) +'</div>' +
+          '<div class="odo-sub">hours&nbsp;:&nbsp;minutes logged</div>' +
+        '</div>' +
+        '<div class="controls">' +
+          '<button class="minus" data-delta="-15">−15m</button>' +
+          '<button data-delta="15">+15m</button>' +
+          '<button data-delta="30">+30m</button>' +
+          '<button data-delta="60">+1h</button>' +
+          '<button data-delta="120">+2h</button>' +
+        '</div>' +
+        '<div class="custom-row">' +
+          '<label>H</label><input type="number" id="hIn" min="0" max="24" value="0">' +
+          '<label>M</label><input type="number" id="mIn" min="0" max="59" value="0">' +
+          '<button class="apply-btn" id="applyAdd">Add time</button>' +
+          '<button class="set-btn" id="applySet">Set as total</button>' +
+        '</div>' +
+        (selMinutes > 0 ? '<div class="clear-link" id="clearDay">Clear this day’s entry</div>' : '') +
+      '</div>' +
+
+      '<div class="card">' +
+        '<div class="section-head">' +
+          '<h2>Trailing days</h2>' +
+          '<div class="range-toggle">' +
+            '<button data-range="14" class="'+(state.range===14?'active':'')+'">14D</button>' +
+            '<button data-range="30" class="'+(state.range===30?'active':'')+'">30D</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="chart-wrap" id="chartWrap"></div>' +
+        '<div class="goal-row">' +
+          'Daily goal: <input type="number" id="goalIn" min="0" max="1440" value="'+state.goalMinutes+'">min' +
+          '<button id="goalSave">Save</button>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="card">' +
+        '<div class="stats">' +
+          '<div class="stat"><div class="num">'+streakN+'</div><div class="lbl">Day streak</div></div>' +
+          '<div class="stat"><div class="num">'+fmtHM(week)+'</div><div class="lbl">Last 7 days</div></div>' +
+          '<div class="stat"><div class="num">'+fmtHM(Math.round(week/7))+'</div><div class="lbl">Avg / day</div></div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="card">' +
+        '<div class="section-head"><h2>Log</h2></div>' +
+        '<div id="logList"></div>' +
+      '</div>';
+
+    renderChart();
+    renderLog();
+    wireEvents();
+  }
+
+  function renderChart(){
+    var wrap = document.getElementById('chartWrap');
+    var n = state.range;
+    var today = startOfDay(new Date());
+    var days = [];
+    for(var i=n-1;i>=0;i--){ days.push(fmtKey(addDays(today,-i))); }
+
+    var vals = days.map(function(k){ return state.data[k] || 0; });
+    var maxVal = Math.max.apply(null, vals.concat([state.goalMinutes * 1.15, 30]));
+
+    var W = 680, H = 150, padL = 4, padR = 4, padB = 18, padT = 6;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var gap = 4;
+    var bw = (plotW - gap*(n-1)) / n;
+
+    var goalY = padT + plotH - (state.goalMinutes / maxVal) * plotH;
+
+    var bars = '';
+    days.forEach(function(k, idx){
+      var v = vals[idx];
+      var bh = (v / maxVal) * plotH;
+      var x = padL + idx * (bw + gap);
+      var y = padT + plotH - bh;
+      var met = state.goalMinutes > 0 && v >= state.goalMinutes;
+      var isSel = k === state.selectedKey;
+      var fill = met ? 'var(--mint)' : (v>0 ? 'var(--amber)' : 'var(--panel-light)');
+      bars +=
+        '<g class="bar" data-key="'+k+'">' +
+          '<rect x="'+x+'" y="'+padT+'" width="'+bw+'" height="'+plotH+'" fill="transparent"></rect>' +
+          '<rect class="fill" x="'+x+'" y="'+y+'" width="'+bw+'" height="'+Math.max(bh,1.5)+'" rx="2" fill="'+fill+'" '+
+            (isSel ? 'stroke="var(--text)" stroke-width="1.5"' : '') + '></rect>' +
+        '</g>';
+    });
+
+    var labelEvery = n === 14 ? 1 : 5;
+    var labels = '';
+    days.forEach(function(k, idx){
+      var show = (idx % labelEvery === 0) || idx === n-1;
+      if(!show) return;
+      var d = keyToDate(k);
+      var x = padL + idx*(bw+gap) + bw/2;
+      var txt = n === 14 ? WD[d.getDay()].slice(0,1) : d.getDate();
+      labels += '<text class="axis-label" x="'+x+'" y="'+(H-4)+'" text-anchor="middle">'+txt+'</text>';
+    });
+
+    var goalLine = state.goalMinutes > 0 ?
+      '<line class="goal-line" x1="'+padL+'" y1="'+goalY+'" x2="'+(W-padR)+'" y2="'+goalY+'"></line>' : '';
+
+    wrap.innerHTML =
+      '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">' +
+        goalLine + bars + labels +
+      '</svg>';
+
+    Array.prototype.forEach.call(wrap.querySelectorAll('.bar'), function(el){
+      el.addEventListener('click', function(){
+        state.selectedKey = el.getAttribute('data-key');
+        render();
+      });
+    });
+  }
+
+  function renderLog(){
+    var list = document.getElementById('logList');
+    var keys = Object.keys(state.data).filter(function(k){ return state.data[k] > 0; });
+    keys.sort().reverse();
+    if(keys.length === 0){
+      list.innerHTML = '<div class="log-empty">No time logged yet — log some above to start the ledger.</div>';
+      return;
+    }
+    var maxV = Math.max.apply(null, keys.map(function(k){ return state.data[k]; }));
+    var html = '';
+    keys.forEach(function(k){
+      var v = state.data[k];
+      var d = keyToDate(k);
+      var pct = Math.max(4, Math.round((v/maxV)*100));
+      var met = state.goalMinutes > 0 && v >= state.goalMinutes;
+      var sel = k === state.selectedKey;
+      var confirming = state.confirmDelete === k;
+      html +=
+        '<div class="log-row '+(sel?'selected':'')+'" data-key="'+k+'">' +
+          '<div class="log-date">'+ MO[d.getMonth()] +' '+ d.getDate() +'<span class="wd">'+ WD[d.getDay()] +'</span></div>' +
+          '<div class="log-bar-track"><div class="log-bar-fill '+(met?'met':'')+'" style="width:'+pct+'%"></div></div>' +
+          '<div class="log-time">'+ fmtHM(v) +'</div>' +
+          (confirming
+            ? '<button class="log-del confirm" data-del="'+k+'">Delete?</button>'
+            : '<button class="log-del" data-del="'+k+'">×</button>') +
+        '</div>';
+    });
+    list.innerHTML = html;
+
+    Array.prototype.forEach.call(list.querySelectorAll('.log-row'), function(row){
+      row.addEventListener('click', function(e){
+        if(e.target.closest('.log-del')) return;
+        state.selectedKey = row.getAttribute('data-key');
+        render();
+      });
+    });
+    Array.prototype.forEach.call(list.querySelectorAll('.log-del'), function(btn){
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var k = btn.getAttribute('data-del');
+        if(state.confirmDelete === k){ deleteDay(k); }
+        else { state.confirmDelete = k; render(); }
+      });
+    });
+  }
+
+  function wireEvents(){
+    var prev = document.getElementById('navPrev');
+    var next = document.getElementById('navNext');
+    if(prev) prev.addEventListener('click', function(){
+      state.selectedKey = fmtKey(addDays(keyToDate(state.selectedKey), -1));
+      render();
+    });
+    if(next) next.addEventListener('click', function(){
+      if(next.disabled) return;
+      state.selectedKey = fmtKey(addDays(keyToDate(state.selectedKey), 1));
+      render();
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('.controls button'), function(btn){
+      btn.addEventListener('click', function(){
+        addMinutes(state.selectedKey, +btn.getAttribute('data-delta'));
+      });
+    });
+
+    var hIn = document.getElementById('hIn'), mIn = document.getElementById('mIn');
+    document.getElementById('applyAdd').addEventListener('click', function(){
+      var delta = (parseInt(hIn.value,10)||0)*60 + (parseInt(mIn.value,10)||0);
+      if(delta === 0){ showToast('Enter hours or minutes first.'); return; }
+      addMinutes(state.selectedKey, delta);
+      hIn.value = 0; mIn.value = 0;
+    });
+    document.getElementById('applySet').addEventListener('click', function(){
+      var total = (parseInt(hIn.value,10)||0)*60 + (parseInt(mIn.value,10)||0);
+      setMinutes(state.selectedKey, total);
+      hIn.value = 0; mIn.value = 0;
+    });
+
+    var clearLink = document.getElementById('clearDay');
+    if(clearLink) clearLink.addEventListener('click', function(){
+      setMinutes(state.selectedKey, 0);
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('.range-toggle button'), function(btn){
+      btn.addEventListener('click', function(){
+        state.range = +btn.getAttribute('data-range');
+        render();
+      });
+    });
+
+    var goalIn = document.getElementById('goalIn');
+    document.getElementById('goalSave').addEventListener('click', function(){
+      var v = Math.max(0, Math.min(1440, parseInt(goalIn.value,10) || 0));
+      state.goalMinutes = v;
+      render();
+      saveSettings();
+      showToast('Daily goal saved.');
+    });
+  }
+
+  // ---------- boot ----------
+  loadAll().then(render).catch(function(){
+    state.loaded = true;
+    state.error = 'Could not load saved data — starting fresh.';
+    render();
+  });
+
+})();
+</script>
+</body>
+</html>
